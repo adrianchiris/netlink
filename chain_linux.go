@@ -1,7 +1,6 @@
 package netlink
 
 import (
-	"fmt"
 	"github.com/vishvananda/netlink/nl"
 	"golang.org/x/sys/unix"
 )
@@ -48,10 +47,9 @@ func (h *Handle) chainModify(cmd, flags int, link Link, chain Chain) error {
 		Parent:  chain.Parent,
 	}
 	req.AddData(msg)
-	req.AddData(nl.NewRtAttr(nl.TCA_CHAIN, nl.Uint16Attr(chain.Chain)))
+	req.AddData(nl.NewRtAttr(nl.TCA_CHAIN, nl.Uint32Attr(chain.Chain)))
 
 	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
-	fmt.Println("6")
 	return err
 }
 
@@ -103,7 +101,7 @@ func (h *Handle) ChainList(link Link, parent uint32) ([]Chain, error) {
 		for _, attr := range attrs {
 			switch attr.Attr.Type {
 			case nl.TCA_CHAIN:
-				chain.Chain = native.Uint16(attr.Value)
+				chain.Chain = native.Uint32(attr.Value)
 				chain.Parent = parent
 			}
 		}

@@ -66,9 +66,9 @@ type Flower struct {
 	EncKeyId      uint32
 	SkipHw        bool
 	SkipSw        bool
-	IPProto       *nl.IPProto
-	DstPort       uint16
-	SrcPort       uint16
+	IPProto  *nl.IPProto
+	DestPort uint16
+	SrcPort  uint16
 
 	Actions []Action
 }
@@ -147,14 +147,14 @@ func (filter *Flower) encode(parent *nl.RtAttr) error {
 				parent.AddRtAttr(nl.TCA_FLOWER_KEY_SCTP_SRC, htons(filter.SrcPort))
 			}
 		}
-		if filter.DstPort != 0 {
+		if filter.DestPort != 0 {
 			switch ipproto {
 			case nl.IPPROTO_TCP:
-				parent.AddRtAttr(nl.TCA_FLOWER_KEY_TCP_DST, htons(filter.SrcPort))
+				parent.AddRtAttr(nl.TCA_FLOWER_KEY_TCP_DST, htons(filter.DestPort))
 			case nl.IPPROTO_UDP:
-				parent.AddRtAttr(nl.TCA_FLOWER_KEY_UDP_DST, htons(filter.SrcPort))
+				parent.AddRtAttr(nl.TCA_FLOWER_KEY_UDP_DST, htons(filter.DestPort))
 			case nl.IPPROTO_SCTP:
-				parent.AddRtAttr(nl.TCA_FLOWER_KEY_SCTP_DST, htons(filter.SrcPort))
+				parent.AddRtAttr(nl.TCA_FLOWER_KEY_SCTP_DST, htons(filter.DestPort))
 			}
 		}
 	}
@@ -207,7 +207,7 @@ func (filter *Flower) decode(data []syscall.NetlinkRouteAttr) error {
 		case nl.TCA_FLOWER_KEY_TCP_SRC, nl.TCA_FLOWER_KEY_UDP_SRC, nl.TCA_FLOWER_KEY_SCTP_SRC:
 			filter.SrcPort = ntohs(datum.Value)
 		case nl.TCA_FLOWER_KEY_TCP_DST, nl.TCA_FLOWER_KEY_UDP_DST, nl.TCA_FLOWER_KEY_SCTP_DST:
-			filter.SrcPort = ntohs(datum.Value)
+			filter.DestPort = ntohs(datum.Value)
 		case nl.TCA_FLOWER_ACT:
 			tables, err := nl.ParseRouteAttr(datum.Value)
 			if err != nil {
@@ -292,8 +292,13 @@ func (h *Handle) filterModify(filter Filter, flags int) error {
 	}
 	req.AddData(msg)
 	req.AddData(nl.NewRtAttr(nl.TCA_KIND, nl.ZeroTerminated(filter.Type())))
+	// todo add conditionally
+	req.AddData(nl.NewRtAttr(nl.TCA_CHAIN, nl.Uint32Attr(filter.Attrs().Chain)))
 
 	options := nl.NewRtAttr(nl.TCA_OPTIONS, nil)
+
+
+
 
 	switch filter := filter.(type) {
 	case *U32:
@@ -467,6 +472,8 @@ func (h *Handle) FilterList(link Link, parent uint32) ([]Filter, error) {
 				default:
 					filter = &GenericFilter{FilterType: filterType}
 				}
+			case nl.TCA_CHAIN:
+				base.Chain = native.Uint32(attr.Value)
 			case nl.TCA_OPTIONS:
 				data, err := nl.ParseRouteAttr(attr.Value)
 				if err != nil {

@@ -17,12 +17,14 @@ type FilterAttrs struct {
 	LinkIndex int
 	Handle    uint32
 	Parent    uint32
+	Chain     uint32  // 28 bits
 	Priority  uint16 // lower is higher priority
 	Protocol  uint16 // unix.ETH_P_*
 }
 
 func (q FilterAttrs) String() string {
-	return fmt.Sprintf("{LinkIndex: %d, Handle: %s, Parent: %s, Priority: %d, Protocol: %d}", q.LinkIndex, HandleStr(q.Handle), HandleStr(q.Parent), q.Priority, q.Protocol)
+	return fmt.Sprintf("{LinkIndex: %d, Handle: %s, Parent: %s, Chain: %d, Priority: %d, Protocol: %d}",
+		q.LinkIndex, HandleStr(q.Handle), HandleStr(q.Parent), q.Chain, q.Priority, q.Protocol)
 }
 
 type TcAct int32
